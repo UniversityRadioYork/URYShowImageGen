@@ -5,18 +5,13 @@ import sys
 from PIL import Image, ImageFont, ImageDraw
 import requests
 
+
 # Defines location of different image files to create show image.
 backgroundImagePath = "GenericShowBackgrounds/"
 colouredBarsPath = "ColouredBars/"
-try:
-    apiKey = sys.argv[1]
-    url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
-    debugMode = sys.argv[2]
-except IndexError as e:
-    log("ERROR", "System Argument(s) not passed in.", str(e))
 
 
-def getShows():
+def getShows(apiKey):
     """
     A function to return a dictionary of shows with show id mapping to the show title.
     Return:
@@ -24,18 +19,18 @@ def getShows():
     """
     try:
         log("DEBUG", "Running getShows() function.")
+        url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
         data = requests.get(url).json()
         shows = {}
 
         for show in data["payload"]:
             showID = data["payload"][show]["show_id"]
             showTitle = data["payload"][show]["title"]
-            if showID != 13031:
-                shows[showID] = showTitle
+            shows[showID] = showTitle
 
         return shows
     except IOError as e:
-        log("API", "Could not acess API.", str(e))
+        log("API", "Could not access API.", str(e))
         sys.exit(0)
 
 
@@ -91,20 +86,20 @@ def applyBrand(showName, outputName, branding):
             log("DCM", "Show name is far too long, runs over 6 lines", showID, "Within function applyBrand().")
             raise Exception
 
-# Determines which background image to use for the show image.
+    # Determines which background image to use for the show image.
     try:
         img = Image.open(backgroundImagePath + str(randint(1, 25)) + ".png")
     except IOError as e:
         log("Error", "Background image could not be opened.", str(e))
 
-# Opens overlay and pastes over the background image
+    # Opens overlay and pastes over the background image
     try:
         overlay = Image.open(colouredBarsPath + brandingOverlay)
         img.paste(overlay, (0, 0), overlay)
     except IOError as e:
         log("Error", "Overlay image could not be opened.", str(e))
 
-# ShowName formatting
+    # ShowName formatting
     log("DEBUG", "Formatting the showName.", showID)
     # textFont = ImageFont.truetype(<font-file>, <font-size>)
     textFont = ImageFont.truetype("Raleway-Bold.ttf", text)
@@ -142,7 +137,7 @@ def applyBrand(showName, outputName, branding):
     draw.text(((800 - w) / 2, textLineHeight), normalizedText, (255, 255, 255), textFont, align='center')
 
 # website URY formatting
-    log("DBEUG", "Applying website branding.", showID)
+    log("DEBUG", "Applying website branding.", showID)
     websiteURL = 'URY.ORG.UK \n @URY1350'
     websiteTextSize = 50
     websiteFont = ImageFont.truetype("Raleway-SemiBoldItalic.ttf", websiteTextSize)
@@ -155,10 +150,7 @@ def applyBrand(showName, outputName, branding):
 
 # Saves the image as the output name in a subfolder ShowImages
     log("DEBUG", "Saving the final image.", showID)
-    try:
-        img.save('ShowImages/%s.jpg' % outputName)
-    except "Not enough storage space!":
-        log("Error", "Not enough storage space to save the show image!", showID)
+    img.save('ShowImages/%s.jpg' % outputName)
 
 
 def brandingFromShowName(showName):
@@ -169,48 +161,35 @@ def brandingFromShowName(showName):
     Return:
         A string of what branding to apply.
     """
-    if showName[:13] == "URY Presents:":
-        output = 'OB'
-    elif showName == "The URY Pantomime 2016: Beauty and the Beast":
-        output = 'OB'
-    elif showName[:1] == "#":
-        output = 'OB'
 
-    elif showName == "Georgie and Angie's Book Corner":
-        output = 'Speech'
-    elif showName == "Stage":
-        output = 'Speech'
-    elif showName == "Speech Showcase":
-        output = 'Speech'
-    elif showName == "Screen":
-        output = 'Speech'
+    show_map = {
+        "URY Presents:": "OB",
+        "The URY Pantomime 2016: Beauty and the Beast": "OB",
+        "#": "OB",
 
-    elif showName == "URY Newshour":
-        output = 'News'
-    elif showName == "York Sport Report":
-        output = 'News'
-    elif showName == "URY SPORT: Grandstand":
-        output = 'News'
-    elif showName == "University Radio Talk":
-        output = 'News'
+        "Georgie and Angie's Book Corner": "Speech",
+        "Stage": "Speech",
+        "Speech Showcase": "Speech",
+        "Screen": "Speech",
 
-    elif showName == "URY:PM - (( URY Music ))":
-        output = 'Music'
-    elif showName == "((URY)) Music: Bedtime Mix":
-        output = 'Music'
+        "URY Newshour": "News",
+        "York Sport Report": "News",
+        "URY SPORT: Grandstand": "News",
+        "University Radio Talk": "News",
 
-    elif showName[:10] == "URY Brunch":
-        output = 'Flagship'
-    elif showName[:17] == "URY Afternoon Tea":
-        output = 'Flagship'
-    elif showName[:8] == "URY:PM -":
-        output = 'Flagship'
-    elif showName == "National Award Nominated URY:PM with National Award Nominated K-Spence":
-        output = 'Flagship'
+        "URY:PM - (( URY Music ))": "Music",
+        "((URY)) Music: Bedtime Mix": "Music",
 
-    else:
-        output = ''
-    return output
+        "URY Brunch": "Flagship",
+        "URY Afternoon Tea": "Flagship",
+        "URY:PM - ": "Flagship",
+        "National Award Nominated URY:PM with Nation Award Nominated K-Spence": "Flagship",
+    }
+
+    for k in show_map:
+        if showName.startswith(k):
+            return show_map[k]
+    return ""
 
 
 def stripPrefix(showName):
@@ -300,13 +279,19 @@ def log(typeM="DEBUG", message="NONE", showNum="NULL", errorMessage="No exceptio
         pass
 
 
+if len(sys.argv) < 3:
+    log("ERROR", "System Argument(s) not passed in.", str(e))
+else:
+    apiKey = sys.argv[1]
+    debugMode = sys.argv[2]
+
 ################################
 ################################
 #    Uses API To Get Shows     #
 ################################
 ################################
 log("DEBUG", "Program Started!")
-# ShowsDict = getShows()
+# ShowsDict = getShows(apiKey)
 ShowsDict = {
     12209: 'URY:PM - URY Chart Show',
     12868: 'URY:PM - Roku Radio',
