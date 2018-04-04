@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from random import randint
 import sys
 
@@ -7,8 +7,8 @@ import requests
 
 
 # Defines location of different image files to create show image.
-backgroundImagePath = "GenericShowBackgrounds/"
-colouredBarsPath = "ColouredBars/"
+BACKGROUND_IMAGE_PATH = "GenericShowBackgrounds/"
+COLOURED_BARS_PATH = "ColouredBars/"
 
 
 def log(msg, showid="", stream=sys.stdout):
@@ -27,38 +27,32 @@ def error(msg, showid="", stream=sys.stderr):
 
 
 def getShows(apiKey):
+    """Returns a dictionary of shows with show id mapping to the show title.
     """
-    A function to return a dictionary of shows with show id mapping to the show title.
-    Return:
-        The dictionary of shows with show ids mapping to the show title.
-    """
+    debug("getShows()")
+    url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
     try:
-        debug("getShows()")
-        url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
         req = requests.get(url)
         req.raise_for_status()
         data = req.json()
-        shows = {}
-
-        for show in data["payload"]:
-            showID = data["payload"][show]["show_id"]
-            showTitle = data["payload"][show]["title"]
-            shows[showID] = showTitle
-
-        return shows
     except requests.exceptions.HTTPError as e:
         error("Could not access API - {}".format(e))
+    shows = {}
+    for show in data["payload"]:
+        showID = data["payload"][show]["show_id"]
+        showTitle = data["payload"][show]["title"]
+        shows[showID] = showTitle
+    return shows
 
 
 def applyBrand(showName, outputName, branding):
-    """
-    A function to create a show image for given show name, output file name and branding.
+    """Creates a show image for given show name, output file name and branding.
     Args:
         showName (str): Show name to add to image.
         outputName (str): The name of the outputfile, standard form including the show id.
         branding (str): The branding to be applied.
     Return:
-        The function outputs a JPG image to a sub folder called ShowImages.
+        A JPG image to a sub folder called ShowImages.
     """
     debug("applyBrand()")
 
@@ -96,14 +90,14 @@ def applyBrand(showName, outputName, branding):
             error("Show name is far too long, runs over 6 lines", showID)
 
     # Determines which background image to use for the show image.
-    img_path = backgroundImagePath + str(randint(1, 25)) + ".png"
+    img_path = BACKGROUND_IMAGE_PATH + str(randint(1, 25)) + ".png"
     try:
         img = Image.open(img_path)
     except IOError as e:
         error("Background image {} could not be opened - {}".format(img_path), str(e))
 
     # Opens overlay and pastes over the background image
-    overlay_path = colouredBarsPath + brandingOverlay
+    overlay_path = COLOURED_BARS_PATH + brandingOverlay
     try:
         overlay = Image.open(overlay_path)
         img.paste(overlay, (0, 0), overlay)
@@ -164,12 +158,11 @@ def applyBrand(showName, outputName, branding):
 
 
 def brandingFromShowName(showName):
-    """
-    A function to determine the branding to be applied based on the show name.
+    """Determines the branding to be applied based on the show name.
     Args:
         showName (str): The show name.
     Return:
-        A string of what branding to apply.
+        What branding to apply.
     """
 
     show_map = {
@@ -203,8 +196,7 @@ def brandingFromShowName(showName):
 
 
 def stripPrefix(showName):
-    """
-    A function to strip the prefix from the show name.
+    """Strips any prefix from the show name.
     Args:
         showName (str): The show name.
     Return:
@@ -224,8 +216,7 @@ def stripPrefix(showName):
 
 
 def normalize(input, firstAttmpt):
-    """
-    A function to split the show name into seperate lines of maximum lengths.
+    """Splits the show name into seperate lines of maximum lengths.
     Args:
         input (str): The Show name.
         firstAttmpt (Bool): Is this the first attempt at normalising the text?
