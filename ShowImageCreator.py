@@ -1,6 +1,7 @@
 import datetime
 from random import randint
 import sys
+import textwrap
 
 from PIL import Image, ImageFont, ImageDraw
 import requests
@@ -83,18 +84,21 @@ def applyBrand(showName, outputName, branding):
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
     # maxNumberOfLines = 4
-    normalizedText, lines, text = normalize(showName, True)
-    if lines > 4:
-        normalizedText, lines, text = normalize(showName, False)
-        if lines > 6:
-            error("Show name is far too long, runs over 6 lines", showID)
+    lines = normalize(showName, True)
+    if len(lines) > 6:
+        error("Show name is far too long, runs over 6 lines", showID)
+    if len(lines) > 4:
+        text_size = 40
+    else:
+        text_size = 65
+    normalizedText = "\n".join(lines)
 
     # Determines which background image to use for the show image.
     img_path = BACKGROUND_IMAGE_PATH + str(randint(1, 25)) + ".png"
     try:
         img = Image.open(img_path)
     except IOError as e:
-        error("Background image {} could not be opened - {}".format(img_path), str(e))
+        error("Background image {} could not be opened - {}".format(img_path, str(e)))
 
     # Opens overlay and pastes over the background image
     overlay_path = COLOURED_BARS_PATH + brandingOverlay
@@ -102,40 +106,17 @@ def applyBrand(showName, outputName, branding):
         overlay = Image.open(overlay_path)
         img.paste(overlay, (0, 0), overlay)
     except IOError as e:
-        error("Overlay image {} could not be opened - {}".format(overlay_path), str(e))
+        error("Overlay image {} could not be opened - {}".format(overlay_path, str(e)))
 
     # ShowName formatting
     debug("Formatting showname", showID)
-    textFont = ImageFont.truetype("Raleway-Bold.ttf", text)
+    textFont = ImageFont.truetype("Raleway-Bold.ttf", text_size)
 
     draw = ImageDraw.Draw(img)
     w, h = draw.textsize(normalizedText, textFont)
 
     # changes the start position, to centre text vertically
-    if text == 65:
-        if lines == 3:
-            textLineHeight = 230
-        elif lines == 2:
-            textLineHeight = 275
-        elif lines == 1:
-            textLineHeight = 300
-        elif lines == 4:
-            textLineHeight = 205
-        else:
-            textLineHeight = 205
-    else:
-        if lines == 1:
-            textLineHeight = 320
-        elif lines == 2:
-            textLineHeight = 295
-        elif lines == 3:
-            textLineHeight = 275
-        elif lines == 4:
-            textLineHeight = 250
-        elif lines == 5:
-            textLineHeight = 235
-        else:
-            textLineHeight = 215
+    textLineHeight = min(200, 350 - ((text_size / 2) * h))
 
     # draw.text((x, y),"Sample Text",(r,g,b))
     draw.text(((800 - w) / 2, textLineHeight), normalizedText, (255, 255, 255), textFont, align='center')
@@ -215,41 +196,21 @@ def stripPrefix(showName):
     return output
 
 
-def normalize(input, firstAttmpt):
-    """Splits the show name into seperate lines of maximum lengths.
+def normalize(input_str):
+    """Splits the show name into separate lines of maximum lengths.
     Args:
         input (str): The Show name.
-        firstAttmpt (Bool): Is this the first attempt at normalising the text?
     Return:
-        Two strings. firstLine is the first line of text. otherLines is the string of other lines with line breaks inserted when necessary.
+        List of strings of limited length, depending on the size of the input text
     """
     debug("normalize()")
-    words = input.split(" ")
-    LinesList = []
 
-    longestWord = 0
-    for word in words:
-        if len(word) > longestWord:
-            longestWord = len(word)
-
-    if longestWord <= 17 and firstAttmpt:
-        maxLineLength = 17
-        text = 65
-    else:
-        maxLineLength = 30
-        text = 40
-
-    for word in words:
-        if len(word) > maxLineLength:
-            error("Word too long for image", showID)
-        elif len(LinesList) > 0 and (len(LinesList[-1]) + len(word) < maxLineLength):
-            LinesList[-1] += " " + word
-        else:
-            LinesList.append(word)
-
-    normalizedText = "".join(item + "\n" for item in LinesList)
-    lines = normalizedText.count('\n')
-    return normalizedText, lines, text
+    lines = textwrap.wrap(input_str, width=17, break_long_words=False, break_on_hyphens=False)
+    if len(lines) > 4 or max(lines, key=len) > 17:
+        lines = textwrap.wrap(input_str, width=30, break_long_words=False, break_on_hyphens=False)
+    if max(lines, key=len) > 30:
+        error("Word too long for image", showID)
+    return lines
 
 
 if len(sys.argv) < 3:
