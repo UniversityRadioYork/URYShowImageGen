@@ -11,6 +11,21 @@ backgroundImagePath = "GenericShowBackgrounds/"
 colouredBarsPath = "ColouredBars/"
 
 
+def log(msg, showid="", stream=sys.stdout):
+    cur_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stream.write("{} - ShowID({}), {}\n".format(cur_time, showid, msg))
+
+
+def debug(msg, showid="", stream=sys.stdout):
+    if debugMode.upper() == 'T':
+        log(msg, showid, stream)
+
+
+def error(msg, showid="", stream=sys.stderr):
+    log(msg, showid, stream)
+    sys.exit(1)
+
+
 def getShows(apiKey):
     """
     A function to return a dictionary of shows with show id mapping to the show title.
@@ -18,9 +33,11 @@ def getShows(apiKey):
         The dictionary of shows with show ids mapping to the show title.
     """
     try:
-        log("DEBUG", "Running getShows() function.")
+        debug("getShows()")
         url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
-        data = requests.get(url).json()
+        req = requests.get(url)
+        req.raise_for_status()
+        data = req.json()
         shows = {}
 
         for show in data["payload"]:
@@ -29,9 +46,8 @@ def getShows(apiKey):
             shows[showID] = showTitle
 
         return shows
-    except IOError as e:
-        log("API", "Could not access API.", str(e))
-        sys.exit(0)
+    except requests.exceptions.HTTPError as e:
+        error("Could not access API - {}".format(e))
 
 
 def applyBrand(showName, outputName, branding):
@@ -44,6 +60,7 @@ def applyBrand(showName, outputName, branding):
     Return:
         The function outputs a JPG image to a sub folder called ShowImages.
     """
+    debug("applyBrand()")
 
     ##########################################
     ##########################################
@@ -53,55 +70,48 @@ def applyBrand(showName, outputName, branding):
     ##########################################
     ##########################################
 
-    log("DEBUG", "Running applyBrand() function.", showID)
     showName = stripPrefix(showName)
     # Determines which overlay to apply to the show image.
     if branding == "Speech":
-        log("DEBUG", "Branding speech.", showID)
         brandingOverlay = "GreenSpeech.png"
     elif branding == "News":
-        log("DEBUG", "Branding news.", showID)
         brandingOverlay = "News.png"
     elif branding == "Music":
-        log("DEBUG", "Branding music.", showID)
         brandingOverlay = "PurpleMusic.png"
     elif branding == "OB":
-        log("DEBUG", "Branding OB.", showID)
         brandingOverlay = "RedOB.png"
     elif branding == "Old":
-        log("DEBUG", "Branding old.", showID)
         brandingOverlay = "WhitePreShowImageFormat.png"
     elif branding == "Flagship":
-        log("DEBUG", "Branding old.", showID)
         brandingOverlay = "Flagship.png"
     else:
-        log("DEBUG", "Branding generic show.", showID)
         brandingOverlay = "BlueGeneral.png"
+    debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
     # maxNumberOfLines = 4
     normalizedText, lines, text = normalize(showName, True)
     if lines > 4:
         normalizedText, lines, text = normalize(showName, False)
         if lines > 6:
-            log("DCM", "Show name is far too long, runs over 6 lines", showID, "Within function applyBrand().")
-            raise Exception
+            error("Show name is far too long, runs over 6 lines", showID)
 
     # Determines which background image to use for the show image.
+    img_path = backgroundImagePath + str(randint(1, 25)) + ".png"
     try:
-        img = Image.open(backgroundImagePath + str(randint(1, 25)) + ".png")
+        img = Image.open(img_path)
     except IOError as e:
-        log("Error", "Background image could not be opened.", str(e))
+        error("Background image {} could not be opened - {}".format(img_path), str(e))
 
     # Opens overlay and pastes over the background image
+    overlay_path = colouredBarsPath + brandingOverlay
     try:
-        overlay = Image.open(colouredBarsPath + brandingOverlay)
+        overlay = Image.open(overlay_path)
         img.paste(overlay, (0, 0), overlay)
     except IOError as e:
-        log("Error", "Overlay image could not be opened.", str(e))
+        error("Overlay image {} could not be opened - {}".format(overlay_path), str(e))
 
     # ShowName formatting
-    log("DEBUG", "Formatting the showName.", showID)
-    # textFont = ImageFont.truetype(<font-file>, <font-size>)
+    debug("Formatting showname", showID)
     textFont = ImageFont.truetype("Raleway-Bold.ttf", text)
 
     draw = ImageDraw.Draw(img)
@@ -136,8 +146,8 @@ def applyBrand(showName, outputName, branding):
     # draw.text((x, y),"Sample Text",(r,g,b))
     draw.text(((800 - w) / 2, textLineHeight), normalizedText, (255, 255, 255), textFont, align='center')
 
-# website URY formatting
-    log("DEBUG", "Applying website branding.", showID)
+    # website URY formatting
+    debug("Applying website branding", showID)
     websiteURL = 'URY.ORG.UK \n @URY1350'
     websiteTextSize = 50
     websiteFont = ImageFont.truetype("Raleway-SemiBoldItalic.ttf", websiteTextSize)
@@ -148,9 +158,9 @@ def applyBrand(showName, outputName, branding):
     # draw.text((x, y),"Sample Text",(r,g,b))
     draw.text(((800 - w) / 2, websiteURLHeight), websiteURL, (255, 255, 255), websiteFont, align='center')
 
-# Saves the image as the output name in a subfolder ShowImages
-    log("DEBUG", "Saving the final image.", showID)
-    img.save('ShowImages/%s.jpg' % outputName)
+    # Saves the image as the output name in a subfolder ShowImages
+    debug("Saving the final image", showID)
+    img.save('ShowImages/{}.jpg'.format(outputName))
 
 
 def brandingFromShowName(showName):
@@ -200,20 +210,15 @@ def stripPrefix(showName):
     Return:
         The show name without the prefix.
     """
-    if showName[:12] == "URY Brunch -":
-        log("DEBUG", "Removing 'URY Brunch -' from the title.", showID)
+    if showName.startswith("URY Brunch -"):
         output = showName[12:]
-    elif showName[:9] == "URY:PM - ":
-        log("DEBUG", "Removing 'URY:PM -' from the title.", showID)
+    elif showName.startswith("URY:PM - "):
         output = showName[9:]
-    elif showName[:19] == "URY Afternoon Tea: ":
-        log("DEBUG", "Removing 'URY:PM -' from the title.", showID)
+    elif showName.startswith("URY Afternoon Tea: "):
         output = showName[19:]
-    elif showName[:12] == "URY Brunch: ":
-        log("DEBUG", "Removing 'URY:PM -' from the title.", showID)
+    elif showName.startswith("URY Brunch: "):
         output = showName[12:]
     else:
-        log("DEBUG", "No prefix to be removed from the title.", showID)
         output = showName
     return output
 
@@ -227,7 +232,7 @@ def normalize(input, firstAttmpt):
     Return:
         Two strings. firstLine is the first line of text. otherLines is the string of other lines with line breaks inserted when necessary.
     """
-    log("DEBUG", "Running normalize() function.", showID)
+    debug("normalize()")
     words = input.split(" ")
     LinesList = []
 
@@ -245,8 +250,7 @@ def normalize(input, firstAttmpt):
 
     for word in words:
         if len(word) > maxLineLength:
-            log("DCM", "Word too long for image.", showID, "Within function normalize().")
-            raise Exception
+            error("Word too long for image", showID)
         elif len(LinesList) > 0 and (len(LinesList[-1]) + len(word) < maxLineLength):
             LinesList[-1] += " " + word
         else:
@@ -257,30 +261,8 @@ def normalize(input, firstAttmpt):
     return normalizedText, lines, text
 
 
-def log(typeM="DEBUG", message="NONE", showNum="NULL", errorMessage="No exception error message."):
-    """
-    A function to output logs to a log file for debugging or exceptions.
-    Args:
-        typeM (str): The type of log to make.
-        mesage (str): The message to explain the log.
-        showNum (str): The show ID (if there is one).
-        errorMessage (str): The exception (if there is one).
-    """
-    if debugMode.upper() == 'T' or typeM.upper() == "DCM" or typeM.upper() == "API" or typeM.upper() == "ERROR":
-        try:
-            f = open("logfile.log", "a")
-            now = datetime.now()
-            curTime = now.strftime("%Y-%m-%d %H:%M:%S.%f")
-            f.write(curTime + " - [" + typeM.upper() + "] Show ID: {" + showNum + "} " + message + "\n" + errorMessage + "\n")
-            f.close()
-        except IOError as e:
-            pass
-    else:
-        pass
-
-
 if len(sys.argv) < 3:
-    log("ERROR", "System Argument(s) not passed in.", str(e))
+    error("System arguments not passed in")
 else:
     apiKey = sys.argv[1]
     debugMode = sys.argv[2]
@@ -290,7 +272,7 @@ else:
 #    Uses API To Get Shows     #
 ################################
 ################################
-log("DEBUG", "Program Started!")
+debug("Program start")
 # ShowsDict = getShows(apiKey)
 ShowsDict = {
     12209: 'URY:PM - URY Chart Show',
@@ -396,4 +378,4 @@ for key in ShowsDict:
     branding = 'OB'
     applyBrand(showName, showID, branding)
 
-log("DEBUG", "Program Complete!")
+debug("Program complete")
