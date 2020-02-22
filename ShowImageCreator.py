@@ -188,16 +188,23 @@ def stripPrefix(showName):
     Return:
         The show name without the prefix.
     """
-    if showName.startswith("URY Brunch -"):
-        output = showName[12:]
-    elif showName.startswith("URY:PM - "):
-        output = showName[9:]
-    elif showName.startswith("URY Afternoon Tea: "):
-        output = showName[19:]
-    elif showName.startswith("URY Brunch: "):
-        output = showName[12:]
-    else:
-        output = showName
+    prefixes = [
+        "URY Brunch - ",
+        "URY:PM - ",
+        "URY Afternoon Tea: ",
+        "URY Brunch: ",
+        "URY Breakfast: ",
+        "URY Speech: ",
+        "URY Music: ",
+        "URY News & Sport: ",
+        "URY Sport: "
+        ]
+    output = showName
+    for prefix in prefixes:
+        if showName.startswith(prefix):
+            output = showName[len(prefix):]
+            break
+
     return output
 
 
