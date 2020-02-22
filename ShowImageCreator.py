@@ -85,13 +85,16 @@ def applyBrand(showName, outputName, branding):
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
     # maxNumberOfLines = 4
-    lines = normalize(showName, True)
+    lines = normalize(showName)
+    debug("Lines: lines)
+    debug("Line count: " + len(lines))
     if len(lines) > 6:
         error("Show name is far too long, runs over 6 lines", showID)
     if len(lines) > 4:
         text_size = 40
     else:
-        text_size = 65
+        text_size = 70
+    debug("Text Size:", text_size)
     normalizedText = "\n".join(lines)
 
     # Determines which background image to use for the show image.
@@ -117,7 +120,7 @@ def applyBrand(showName, outputName, branding):
     w, h = draw.textsize(normalizedText, textFont)
 
     # changes the start position, to centre text vertically
-    textLineHeight = min(200, 350 - ((text_size / 2) * h))
+    textLineHeight = max(200, 350 - (h/2))
 
     # draw.text((x, y),"Sample Text",(r,g,b))
     draw.text(((800 - w) / 2, textLineHeight), normalizedText, (255, 255, 255), textFont, align='center')
@@ -136,7 +139,7 @@ def applyBrand(showName, outputName, branding):
 
     # Saves the image as the output name in a subfolder ShowImages
     debug("Saving the final image", showID)
-    img.save('ShowImages/{}.jpg'.format(outputName))
+    img.convert('RGB').save('ShowImages/{}.jpg'.format(outputName))
 
 
 def brandingFromShowName(showName):
@@ -207,9 +210,9 @@ def normalize(input_str):
     debug("normalize()")
 
     lines = textwrap.wrap(input_str, width=17, break_long_words=False, break_on_hyphens=False)
-    if len(lines) > 4 or max(lines, key=len) > 17:
-        lines = textwrap.wrap(input_str, width=30, break_long_words=False, break_on_hyphens=False)
-    if max(lines, key=len) > 30:
+    if len(lines) > 4 or len(max(lines, key=len)) > 17:
+        lines = textwrap.wrap(input_str, width=20, break_long_words=False, break_on_hyphens=False)
+    if len(max(lines, key=len)) > 20:
         error("Word too long for image", showID)
     return lines
 
