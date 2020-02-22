@@ -47,6 +47,13 @@ def getShows(apiKey):
         debug(showTitle)
     return shows
 
+def getIfDefaultImage(apiKey, showId):
+    data = requests.get('https://ury.org.uk/api/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey).json()
+    return data['payload'] == "/images/default_show_profile.png"
+
+def setImage(apiKey, showId):
+    r = requests.put('https://ury.org.uk/api-dev/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey, json={'tmp_path': '/tmp/autogenshowimg/' + showID + '.jpg'})
+    return r.status_code == 200
 
 def applyBrand(showName, outputName, branding):
     """Creates a show image for given show name, output file name and branding.
@@ -87,8 +94,8 @@ def applyBrand(showName, outputName, branding):
 
     # maxNumberOfLines = 4
     lines = normalize(showName)
-    debug("Lines: lines)
-    debug("Line count: " + len(lines))
+    debug("Lines: " + str(lines))
+    debug("Line count: " + str(len(lines)))
     if len(lines) > 6:
         error("Show name is far too long, runs over 6 lines", showID)
     if len(lines) > 4:
@@ -239,10 +246,14 @@ else:
 debug("Program start")
 ApiShowsDict = getShows(apiKey)
 
-for key in ApiShowsDict:
-    showName = ApiShowsDict[key]
-    showID = str(key)
-    branding = 'OB'
-    applyBrand(showName, showID, branding)
+for showKey in ApiShowsDict:
+    if getIfDefaultImage(apiKey, showKey):
+        print(showKey)
+        # The show uses the default image, let's make it one.
+        showName = ApiShowsDict[showKey]
+        showID = str(showKey)
+        branding = 'OB'
+        applyBrand(showName, showID, branding)
+
 
 debug("Program complete")
