@@ -95,7 +95,7 @@ def applyBrand(showName, outputName, branding):
     elif branding == "primetime":
         brandingOverlay = "Flagship.png"
     elif branding == "collab":
-        brandingOverlay = "Flagship.png"
+        brandingOverlay = "Collab.png"
     else: # Should be "regular"
         brandingOverlay = "BlueGeneral.png"
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
