@@ -43,13 +43,13 @@ def getShows(apiKey):
         show_payload = data["payload"][show]
         showID = show_payload["show_id"]
         showTitle = show_payload["title"]
-        shows[showID] = showTitle
+        showSubType = show_payload["subtype"]["class"]
+        shows[showID] = [showTitle, show_payload["photo"], showSubType]
         debug(showTitle)
     return shows
 
-def getIfDefaultImage(apiKey, showId):
-    data = requests.get('https://ury.org.uk/api/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey).json()
-    return data['payload'] == "/images/default_show_profile.png"
+def getIfDefaultImage(image):
+    return image == "/images/default_show_profile.png"
 
 def setImage(apiKey, showId):
     r = requests.put('https://ury.org.uk/api-dev/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey, json={'tmp_path': '/tmp/autogenshowimg/' + showID + '.jpg'})
@@ -66,29 +66,21 @@ def applyBrand(showName, outputName, branding):
     """
     debug("applyBrand()")
 
-    ##########################################
-    ##########################################
-    # Hack to get branding from show name
-    # branding = "Old"
-    branding = brandingFromShowName(showName)
-    ##########################################
-    ##########################################
-
     showName = stripPrefix(showName)
     # Determines which overlay to apply to the show image.
-    if branding == "Speech":
+    if branding == "speech":
         brandingOverlay = "GreenSpeech.png"
-    elif branding == "News":
+    elif branding == "news":
         brandingOverlay = "News.png"
-    elif branding == "Music":
+    elif branding == "music":
         brandingOverlay = "PurpleMusic.png"
-    elif branding == "OB":
-        brandingOverlay = "RedOB.png"
-    elif branding == "Old":
-        brandingOverlay = "WhitePreShowImageFormat.png"
-    elif branding == "Flagship":
+    elif branding == "event":
+        brandingOverlay = "RedEvent.png"
+    elif branding == "primetime":
         brandingOverlay = "Flagship.png"
-    else:
+    elif branding == "collab":
+        brandingOverlay = "Flagship.png"
+    else: # Should be "regular"
         brandingOverlay = "BlueGeneral.png"
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
@@ -247,13 +239,14 @@ debug("Program start")
 ApiShowsDict = getShows(apiKey)
 
 for showKey in ApiShowsDict:
-    if getIfDefaultImage(apiKey, showKey):
-        print(showKey)
-        # The show uses the default image, let's make it one.
-        showName = ApiShowsDict[showKey]
-        showID = str(showKey)
-        branding = 'OB'
-        applyBrand(showName, showID, branding)
+
+        show = ApiShowsDict[showKey]
+        if getIfDefaultImage(show[1]):
+            # The show uses the default image, let's make it one.
+            showName = show[0]
+            showID = str(showKey)
+            branding = show[2]
+            applyBrand(showName, showID, branding)
 
 
 debug("Program complete")
