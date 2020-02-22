@@ -40,8 +40,9 @@ def getShows(apiKey):
         error("Could not access API - {}".format(e))
     shows = {}
     for show in data["payload"]:
-        showID = data["payload"][show]["show_id"]
-        showTitle = data["payload"][show]["title"]
+        show_payload = data["payload"][show]
+        showID = show_payload["show_id"]
+        showTitle = show_payload["title"]
         shows[showID] = showTitle
     return shows
 
