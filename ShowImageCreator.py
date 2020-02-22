@@ -3,6 +3,7 @@ from random import randint
 import sys
 import textwrap
 import argparse
+import urllib.parse
 
 from PIL import Image, ImageFont, ImageDraw
 import requests
@@ -259,7 +260,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    apiKey = args.apikey
+    apiKey = apiKey = urllib.parse.quote(args.apikey)
     debugMode = args.debug
     dryRun = args.dryrun
     outputDir = args.outputdir
