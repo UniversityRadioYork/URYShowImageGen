@@ -2,14 +2,18 @@ import datetime
 from random import randint
 import sys
 import textwrap
+import argparse
 
 from PIL import Image, ImageFont, ImageDraw
 import requests
+import os
+
 
 
 # Defines location of different image files to create show image.
 BACKGROUND_IMAGE_PATH = "GenericShowBackgrounds/"
 COLOURED_BARS_PATH = "ColouredBars/"
+DEFAULT_SHOW_IMAGE = "/images/default_show_profile.png"
 
 
 def log(msg, showid="", stream=sys.stdout):
@@ -18,7 +22,7 @@ def log(msg, showid="", stream=sys.stdout):
 
 
 def debug(msg, showid="", stream=sys.stdout):
-    if debugMode.upper() == 'T':
+    if debugMode:
         log(msg, showid, stream)
 
 
@@ -49,11 +53,22 @@ def getShows(apiKey):
     return shows
 
 def getIfDefaultImage(image):
-    return image == "/images/default_show_profile.png"
+    return image == DEFAULT_SHOW_IMAGE
 
 def setImage(apiKey, showId):
-    r = requests.put('https://ury.org.uk/api-dev/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey, json={'tmp_path': '/tmp/autogenshowimg/' + showID + '.jpg'})
-    return r.status_code == 200
+    image_location = apiDir + showId + '.jpg'
+    debug("API file location: " + image_location, showId)
+    if dryRun == False:
+        debug("Calling API to set image.", showId)
+        r = requests.put('https://ury.org.uk/api/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey, json={'tmp_path': image_location})
+        return r.status_code == 200
+    else:
+        debug("Dry run, not setting image with API.", showId)
+        return True
+
+def deleteImage(showId):
+    image_location = outputDir + showId + '.jpg'
+    os.remove(image_location)
 
 def applyBrand(showName, outputName, branding):
     """Creates a show image for given show name, output file name and branding.
@@ -139,7 +154,10 @@ def applyBrand(showName, outputName, branding):
 
     # Saves the image as the output name in a subfolder ShowImages
     debug("Saving the final image", showID)
-    img.convert('RGB').save('ShowImages/{}.jpg'.format(outputName))
+    img.convert('RGB').save('{}{}.jpg'.format(outputDir, outputName))
+
+    # Todo check if we actually created the file successfully!
+    return True
 
 
 def brandingFromShowName(showName):
@@ -224,29 +242,56 @@ def normalize(input_str):
     return lines
 
 
-if len(sys.argv) < 3:
-    error("System arguments not passed in")
-else:
-    apiKey = sys.argv[1]
-    debugMode = sys.argv[2]
-
-################################
-################################
-#    Uses API To Get Shows     #
-################################
-################################
-debug("Program start")
-ApiShowsDict = getShows(apiKey)
-
-for showKey in ApiShowsDict:
-
-        show = ApiShowsDict[showKey]
-        if getIfDefaultImage(show[1]):
-            # The show uses the default image, let's make it one.
-            showName = show[0]
-            showID = str(showKey)
-            branding = show[2]
-            applyBrand(showName, showID, branding)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Generate show images automagically.')
+    parser.add_argument('--apikey', required=True,
+                        help='API key with valid permissions for viewing all shows and setting show images.')
+    parser.add_argument('--debug', action='store_true',
+                        help='Print a lot of debug info.')
+    parser.add_argument('--dryrun', action='store_true',
+                        help="Don't actually update the API with the images generated.")
+    parser.add_argument('--outputdir', required=True,
+                        help='Location on the system to put the image files.')
+    parser.add_argument('--apidir', default=None,
+                        help='Location on the API host where the image files will be. This is useful if you are using mounts instead. Defaults to --outputdir')
 
 
-debug("Program complete")
+    args = parser.parse_args()
+
+    apiKey = args.apikey
+    debugMode = args.debug
+    dryRun = args.dryrun
+    outputDir = args.outputdir
+    if args.apidir != None:
+        apiDir = args.apidir
+    else:
+        apiDir = outputDir
+
+
+
+    ################################
+    ################################
+    #    Uses API To Get Shows     #
+    ################################
+    ################################
+    debug("Program start")
+    ApiShowsDict = getShows(apiKey)
+
+    for showKey in ApiShowsDict:
+
+            show = ApiShowsDict[showKey]
+            if getIfDefaultImage(show[1]):
+                # The show uses the default image, let's make it one.
+                showName = show[0]
+                showID = str(showKey)
+                branding = show[2]
+                if applyBrand(showName, showID, branding):
+                    if setImage(apiKey, showID):
+                        debug("Image set succeessfully, deleting.", showID)
+                        deleteImage(showID)
+
+
+
+
+    debug("Program complete")
