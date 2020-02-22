@@ -31,7 +31,7 @@ def getShows(apiKey):
     """Returns a dictionary of shows with show id mapping to the show title.
     """
     debug("getShows()")
-    url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
+    url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=1&api_key=" + apiKey
     try:
         req = requests.get(url)
         req.raise_for_status()
