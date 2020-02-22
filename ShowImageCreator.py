@@ -44,6 +44,7 @@ def getShows(apiKey):
         showID = show_payload["show_id"]
         showTitle = show_payload["title"]
         shows[showID] = showTitle
+        debug(showTitle)
     return shows
 
 
@@ -115,7 +116,7 @@ def applyBrand(showName, outputName, branding):
     # ShowName formatting
     debug("Formatting showname", showID)
     textFont = ImageFont.truetype("Raleway-Bold.ttf", text_size)
-
+    debug("Normalised Text: " + normalizedText)
     draw = ImageDraw.Draw(img)
     w, h = draw.textsize(normalizedText, textFont)
 
