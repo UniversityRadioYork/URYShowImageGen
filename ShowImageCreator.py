@@ -160,45 +160,6 @@ def applyBrand(showName, outputName, branding):
     # Todo check if we actually created the file successfully!
     return True
 
-
-def brandingFromShowName(showName):
-    """Determines the branding to be applied based on the show name.
-    Args:
-        showName (str): The show name.
-    Return:
-        What branding to apply.
-    """
-
-    show_map = {
-        "URY Presents:": "OB",
-        "The URY Pantomime 2016: Beauty and the Beast": "OB",
-        "#": "OB",
-
-        "Georgie and Angie's Book Corner": "Speech",
-        "Stage": "Speech",
-        "Speech Showcase": "Speech",
-        "Screen": "Speech",
-
-        "URY Newshour": "News",
-        "York Sport Report": "News",
-        "URY SPORT: Grandstand": "News",
-        "University Radio Talk": "News",
-
-        "URY:PM - (( URY Music ))": "Music",
-        "((URY)) Music: Bedtime Mix": "Music",
-
-        "URY Brunch": "Flagship",
-        "URY Afternoon Tea": "Flagship",
-        "URY:PM - ": "Flagship",
-        "National Award Nominated URY:PM with Nation Award Nominated K-Spence": "Flagship",
-    }
-
-    for k in show_map:
-        if showName.startswith(k):
-            return show_map[k]
-    return ""
-
-
 def stripPrefix(showName):
     """Strips any prefix from the show name.
     Args:
@@ -269,8 +230,6 @@ if __name__ == "__main__":
     else:
         apiDir = outputDir
 
-
-
     ################################
     ################################
     #    Uses API To Get Shows     #
@@ -291,8 +250,5 @@ if __name__ == "__main__":
                     if setImage(apiKey, showID):
                         debug("Image set succeessfully, deleting.", showID)
                         deleteImage(showID)
-
-
-
 
     debug("Program complete")
