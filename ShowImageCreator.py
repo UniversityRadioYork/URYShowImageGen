@@ -44,8 +44,7 @@ def getShows(apiKey):
     except requests.exceptions.HTTPError as e:
         error("Could not access API - {}".format(e))
     shows = {}
-    for show in data["payload"]:
-        show_payload = data["payload"][show]
+    for show_payload in data["payload"]:
         showID = show_payload["show_id"]
         showTitle = show_payload["title"]
         showSubType = show_payload["subtype"]["class"]
