@@ -2,14 +2,19 @@ import datetime
 from random import randint
 import sys
 import textwrap
+import argparse
+import urllib.parse
 
 from PIL import Image, ImageFont, ImageDraw
 import requests
+import os
+
 
 
 # Defines location of different image files to create show image.
 BACKGROUND_IMAGE_PATH = "GenericShowBackgrounds/"
 COLOURED_BARS_PATH = "ColouredBars/"
+DEFAULT_SHOW_IMAGE = "/images/default_show_profile.png"
 
 
 def log(msg, showid="", stream=sys.stdout):
@@ -18,7 +23,7 @@ def log(msg, showid="", stream=sys.stdout):
 
 
 def debug(msg, showid="", stream=sys.stdout):
-    if debugMode.upper() == 'T':
+    if debugMode:
         log(msg, showid, stream)
 
 
@@ -31,7 +36,7 @@ def getShows(apiKey):
     """Returns a dictionary of shows with show id mapping to the show title.
     """
     debug("getShows()")
-    url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=0&api_key=" + apiKey
+    url = "https://ury.org.uk/api/v2/show/allshows?current_term_only=1&api_key=" + apiKey
     try:
         req = requests.get(url)
         req.raise_for_status()
@@ -40,11 +45,31 @@ def getShows(apiKey):
         error("Could not access API - {}".format(e))
     shows = {}
     for show in data["payload"]:
-        showID = data["payload"][show]["show_id"]
-        showTitle = data["payload"][show]["title"]
-        shows[showID] = showTitle
+        show_payload = data["payload"][show]
+        showID = show_payload["show_id"]
+        showTitle = show_payload["title"]
+        showSubType = show_payload["subtype"]["class"]
+        shows[showID] = [showTitle, show_payload["photo"], showSubType]
+        debug(showTitle)
     return shows
 
+def getIfDefaultImage(image):
+    return image == DEFAULT_SHOW_IMAGE
+
+def setImage(apiKey, showId):
+    image_location = apiDir + showId + '.jpg'
+    debug("API file location: " + image_location, showId)
+    if dryRun == False:
+        debug("Calling API to set image.", showId)
+        r = requests.put('https://ury.org.uk/api/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey, json={'tmp_path': image_location})
+        return r.status_code == 200
+    else:
+        debug("Dry run, not setting image with API.", showId)
+        return True
+
+def deleteImage(showId):
+    image_location = outputDir + showId + '.jpg'
+    os.remove(image_location)
 
 def applyBrand(showName, outputName, branding):
     """Creates a show image for given show name, output file name and branding.
@@ -57,40 +82,35 @@ def applyBrand(showName, outputName, branding):
     """
     debug("applyBrand()")
 
-    ##########################################
-    ##########################################
-    # Hack to get branding from show name
-    # branding = "Old"
-    branding = brandingFromShowName(showName)
-    ##########################################
-    ##########################################
-
     showName = stripPrefix(showName)
     # Determines which overlay to apply to the show image.
-    if branding == "Speech":
+    if branding == "speech":
         brandingOverlay = "GreenSpeech.png"
-    elif branding == "News":
+    elif branding == "news":
         brandingOverlay = "News.png"
-    elif branding == "Music":
+    elif branding == "music":
         brandingOverlay = "PurpleMusic.png"
-    elif branding == "OB":
-        brandingOverlay = "RedOB.png"
-    elif branding == "Old":
-        brandingOverlay = "WhitePreShowImageFormat.png"
-    elif branding == "Flagship":
+    elif branding == "event":
+        brandingOverlay = "RedEvent.png"
+    elif branding == "primetime":
         brandingOverlay = "Flagship.png"
-    else:
+    elif branding == "collab":
+        brandingOverlay = "Collab.png"
+    else: # Should be "regular"
         brandingOverlay = "BlueGeneral.png"
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
     # maxNumberOfLines = 4
-    lines = normalize(showName, True)
+    lines = normalize(showName)
+    debug("Lines: " + str(lines))
+    debug("Line count: " + str(len(lines)))
     if len(lines) > 6:
         error("Show name is far too long, runs over 6 lines", showID)
     if len(lines) > 4:
         text_size = 40
     else:
-        text_size = 65
+        text_size = 70
+    debug("Text Size:", text_size)
     normalizedText = "\n".join(lines)
 
     # Determines which background image to use for the show image.
@@ -111,12 +131,12 @@ def applyBrand(showName, outputName, branding):
     # ShowName formatting
     debug("Formatting showname", showID)
     textFont = ImageFont.truetype("Raleway-Bold.ttf", text_size)
-
+    debug("Normalised Text: " + normalizedText)
     draw = ImageDraw.Draw(img)
     w, h = draw.textsize(normalizedText, textFont)
 
     # changes the start position, to centre text vertically
-    textLineHeight = min(200, 350 - ((text_size / 2) * h))
+    textLineHeight = max(200, 350 - (h/2))
 
     # draw.text((x, y),"Sample Text",(r,g,b))
     draw.text(((800 - w) / 2, textLineHeight), normalizedText, (255, 255, 255), textFont, align='center')
@@ -135,46 +155,10 @@ def applyBrand(showName, outputName, branding):
 
     # Saves the image as the output name in a subfolder ShowImages
     debug("Saving the final image", showID)
-    img.save('ShowImages/{}.jpg'.format(outputName))
+    img.convert('RGB').save('{}{}.jpg'.format(outputDir, outputName))
 
-
-def brandingFromShowName(showName):
-    """Determines the branding to be applied based on the show name.
-    Args:
-        showName (str): The show name.
-    Return:
-        What branding to apply.
-    """
-
-    show_map = {
-        "URY Presents:": "OB",
-        "The URY Pantomime 2016: Beauty and the Beast": "OB",
-        "#": "OB",
-
-        "Georgie and Angie's Book Corner": "Speech",
-        "Stage": "Speech",
-        "Speech Showcase": "Speech",
-        "Screen": "Speech",
-
-        "URY Newshour": "News",
-        "York Sport Report": "News",
-        "URY SPORT: Grandstand": "News",
-        "University Radio Talk": "News",
-
-        "URY:PM - (( URY Music ))": "Music",
-        "((URY)) Music: Bedtime Mix": "Music",
-
-        "URY Brunch": "Flagship",
-        "URY Afternoon Tea": "Flagship",
-        "URY:PM - ": "Flagship",
-        "National Award Nominated URY:PM with Nation Award Nominated K-Spence": "Flagship",
-    }
-
-    for k in show_map:
-        if showName.startswith(k):
-            return show_map[k]
-    return ""
-
+    # Todo check if we actually created the file successfully!
+    return True
 
 def stripPrefix(showName):
     """Strips any prefix from the show name.
@@ -183,16 +167,23 @@ def stripPrefix(showName):
     Return:
         The show name without the prefix.
     """
-    if showName.startswith("URY Brunch -"):
-        output = showName[12:]
-    elif showName.startswith("URY:PM - "):
-        output = showName[9:]
-    elif showName.startswith("URY Afternoon Tea: "):
-        output = showName[19:]
-    elif showName.startswith("URY Brunch: "):
-        output = showName[12:]
-    else:
-        output = showName
+    prefixes = [
+        "URY Brunch - ",
+        "URY:PM - ",
+        "URY Afternoon Tea: ",
+        "URY Brunch: ",
+        "URY Breakfast: ",
+        "URY Speech: ",
+        "URY Music: ",
+        "URY News & Sport: ",
+        "URY Sport: "
+        ]
+    output = showName
+    for prefix in prefixes:
+        if showName.startswith(prefix):
+            output = showName[len(prefix):]
+            break
+
     return output
 
 
@@ -206,128 +197,58 @@ def normalize(input_str):
     debug("normalize()")
 
     lines = textwrap.wrap(input_str, width=17, break_long_words=False, break_on_hyphens=False)
-    if len(lines) > 4 or max(lines, key=len) > 17:
-        lines = textwrap.wrap(input_str, width=30, break_long_words=False, break_on_hyphens=False)
-    if max(lines, key=len) > 30:
+    if len(lines) > 4 or len(max(lines, key=len)) > 17:
+        lines = textwrap.wrap(input_str, width=20, break_long_words=False, break_on_hyphens=False)
+    if len(max(lines, key=len)) > 20:
         error("Word too long for image", showID)
     return lines
 
 
-if len(sys.argv) < 3:
-    error("System arguments not passed in")
-else:
-    apiKey = sys.argv[1]
-    debugMode = sys.argv[2]
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Generate show images automagically.')
+    parser.add_argument('--apikey', required=True,
+                        help='API key with valid permissions for viewing all shows and setting show images.')
+    parser.add_argument('--debug', action='store_true',
+                        help='Print a lot of debug info.')
+    parser.add_argument('--dryrun', action='store_true',
+                        help="Don't actually update the API with the images generated.")
+    parser.add_argument('--outputdir', required=True,
+                        help='Location on the system to put the image files.')
+    parser.add_argument('--apidir', default=None,
+                        help='Location on the API host where the image files will be. This is useful if you are using mounts instead. Defaults to --outputdir')
 
-################################
-################################
-#    Uses API To Get Shows     #
-################################
-################################
-debug("Program start")
-# ShowsDict = getShows(apiKey)
-ShowsDict = {
-    12209: 'URY:PM - URY Chart Show',
-    12868: 'URY:PM - Roku Radio',
-    12374: 'URY Newshour',
-    12928: 'No Ducks Given',
-    12957: '(20,000 Leagues) Into the Void',
-    13000: "What's That Topic?",
-    13008: 'Stage',
-    13049: 'York Sport Report',
-    13053: 'National Award Nominated URY:PM with National Award Nominated K-Spence',
-    13065: 'URY Brunch: The Saturday Lie-In',
-    13067: "Georgie and Angie's Book Corner",
-    13070: 'Gully Riddems',
-    13071: 'Indie Unearthed',
-    13073: 'Building Bridges - The Road to Rock and Roll',
-    13074: 'Castle Sessions',
-    13120: 'Pardon my French',
-    13123: 'Your Opinion is Wrong',
-    13125: 'The Night Call',
-    13126: 'InsomniHour',
-    13130: "What's on my playlist?",
-    13134: "Diggin' Deep",
-    13140: 'Barry Tomes',
-    13141: 'Topics & Tunes',
-    13149: 'RapChat',
-    13156: 'Morning Glory',
-    13159: 'The 20th Century Collection',
-    11628: 'Retrospectre!',
-    13167: 'Star Struck Jack and The Mystery Cat',
-    13177: 'Kick back Sundays with Kate ',
-    13179: 'URY:PM (( URY Music ))',
-    13184: 'The Late Night Bass Podcast',
-    13186: 'These Charming Girls',
-    13189: 'Grumpy Youngish Men',
-    13192: "Leckie's listeners",
-    13202: 'Dylan with a Mike!',
-    13204: 'The Right Faces For Radio',
-    13209: 'Things Can Only Get Bitter',
-    13227: 'Fringe: Full Metal Racket',
-    13228: 'URY Brunch: Star-Struck Jack and the Mystery Cat',
-    13232: 'URY Brunch - Breakfast Club',
-    13233: "URY Brunch - We're All Ears",
-    13235: 'Catchy Chunes',
-    13245: 'In Between Days',
-    13246: 'No DLC Required',
-    13255: 'The Breakz Showcase ',
-    13256: 'URY Brunch - Amateur Hour',
-    13257: "Grandad's Jazz",
-    13258: 'URY:PM - Peculiarities',
-    13259: 'Tales from the Phantasmagoria',
-    13260: 'URY:PM - Willis Weekly',
-    13261: 'Almost Audible',
-    13262: 'Cream Cheese',
-    13263: "#URYonTOUR: Freshers' 2016",
-    13264: 'URY:PM - No Ducks Given',
-    13265: 'Screen',
-    13266: 'URY Brunch - The Culture Show',
-    13267: 'URY Whisper Show',
-    13268: 'URY Brunch - Smile!',
-    13269: 'Midweek Marauders',
-    13270: 'Hidden Gems',
-    13271: 'Go Funk Yourself',
-    13272: 'The Brighter Side of Life',
-    13273: "Peck's Picks",
-    13274: 'Toons in the Afternoons',
-    13275: 'Roger That',
-    13276: 'The Eclectic Mix',
-    13277: 'The Alternative Music Show',
-    13278: 'DESERT ISLAND DISCO',
-    13279: 'coHEARence',
-    13280: 'Formula 1 Analysis',
-    13282: 'AM-bassador',
-    13283: 'Liv and the guy',
-    13284: 'Monday Chills ',
-    13285: 'Your Weekend',
-    13287: 'Non-Stop-Tom',
-    13288: 'Cool Britannia',
-    13289: 'Nothing but Chuuuunes with Hayds',
-    13290: 'The Ben and Jasper Show',
-    13291: 'Why Not?',
-    13292: 'Alternative Juice',
-    13293: "Chef Will - Where there's a Will, there's a...",
-    13294: 'NOUVEAU.',
-    13295: 'Kiltie Pleasures with Jonny ',
-    13296: 'Brain Waves',
-    13297: 'The Sounds of Time',
-    13298: "Josh and Tom's Afternoon Antics",
-    13299: 'Music for Old People',
-    13300: 'GAYdio',
-    13301: 'PolChat',
-    13302: 'Vanbrugh Chair Debate',
-    13303: 'URY Presents: UYCB 2016 Winter Concert',
-    13304: 'NICturnal',
-    13305: 'Speech Showcase',
-    13306: 'More Songs About Chocolate And Girls...',
-    13307: 'URY Does RAG Courtyard Takeover'
-}
 
-for key in ShowsDict:
-    showName = ShowsDict[key]
-    showID = str(key)
-    branding = 'OB'
-    applyBrand(showName, showID, branding)
+    args = parser.parse_args()
 
-debug("Program complete")
+    apiKey = apiKey = urllib.parse.quote(args.apikey)
+    debugMode = args.debug
+    dryRun = args.dryrun
+    outputDir = args.outputdir
+    if args.apidir != None:
+        apiDir = args.apidir
+    else:
+        apiDir = outputDir
+
+    ################################
+    ################################
+    #    Uses API To Get Shows     #
+    ################################
+    ################################
+    debug("Program start")
+    ApiShowsDict = getShows(apiKey)
+
+    for showKey in ApiShowsDict:
+
+            show = ApiShowsDict[showKey]
+            if getIfDefaultImage(show[1]):
+                # The show uses the default image, let's make it one.
+                showName = show[0]
+                showID = str(showKey)
+                branding = show[2]
+                if applyBrand(showName, showID, branding):
+                    if setImage(apiKey, showID):
+                        debug("Image set succeessfully, deleting.", showID)
+                        deleteImage(showID)
+
+    debug("Program complete")
