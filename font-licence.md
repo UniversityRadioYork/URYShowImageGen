@@ -1,9 +1,9 @@
 From https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web
 
-#SIL OPEN FONT LICENSE
-###Version 1.1 - 26 February 2007
+# SIL OPEN FONT LICENSE
+### Version 1.1 - 26 February 2007
 
-##PREAMBLE
+## PREAMBLE
 The goals of the Open Font License (OFL) are to stimulate worldwide
 development of collaborative font projects, to support the font creation
 efforts of academic and linguistic communities, and to provide a free and
@@ -19,7 +19,7 @@ however, cannot be released under any other type of license. The
 requirement for fonts to remain under this license does not apply
 to any document created using the fonts or their derivatives.
 
-##DEFINITIONS
+## DEFINITIONS
 "Font Software" refers to the set of files released by the Copyright
 Holder(s) under this license and clearly marked as such. This may
 include source files, build scripts and documentation.
@@ -71,11 +71,11 @@ distributed under any other license. The requirement for fonts to
 remain under this license does not apply to any document created
 using the Font Software.
 
-##TERMINATION
+## TERMINATION
 This license becomes null and void if any of the above conditions are
 not met.
 
-##DISCLAIMER
+## DISCLAIMER
 THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
