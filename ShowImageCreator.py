@@ -68,7 +68,9 @@ def setImage(apiKey, showId):
 
 def deleteImage(showId):
     image_location = outputDir + showId + '.jpg'
-    os.remove(image_location)
+    if (os.path.exists(image_location):
+        os.remove(image_location)
+        log("Error: MyRadio didn't move the file, failed.", showId, sys.stderr)
 
 def applyBrand(showName, outputName, branding):
     """Creates a show image for given show name, output file name and branding.
