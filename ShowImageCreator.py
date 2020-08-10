@@ -105,9 +105,9 @@ def applyBrand(showName, outputName, branding):
     lines = normalize(showName)
     debug("Lines: " + str(lines))
     debug("Line count: " + str(len(lines)))
-    if len(lines) > 6:
+    if len(lines) > 5:
         error("Show name is far too long, runs over 6 lines", showID)
-    if len(lines) > 4:
+    if len(lines) > 3:
         text_size = 40
     else:
         text_size = 70
