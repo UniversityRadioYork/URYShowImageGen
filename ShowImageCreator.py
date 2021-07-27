@@ -205,31 +205,45 @@ def normalize(input_str):
     return lines
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Generate show images automagically.')
-    parser.add_argument('--apikey', required=True,
-                        help='API key with valid permissions for viewing all shows and setting show images.')
-    parser.add_argument('--debug', action='store_true',
-                        help='Print a lot of debug info.')
-    parser.add_argument('--dryrun', action='store_true',
-                        help="Don't actually update the API with the images generated.")
-    parser.add_argument('--outputdir', required=True,
-                        help='Location on the system to put the image files.')
-    parser.add_argument('--apidir', default=None,
-                        help='Location on the API host where the image files will be. This is useful if you are using mounts instead. Defaults to --outputdir')
+def main(env):
+    """
+    Params:
+        env:
+            True if to read from environment variables
+            False if to read from argparse
+    """
 
-
-    args = parser.parse_args()
-
-    apiKey = apiKey = urllib.parse.quote(args.apikey)
-    debugMode = args.debug
-    dryRun = args.dryrun
-    outputDir = args.outputdir
-    if args.apidir != None:
-        apiDir = args.apidir
+    if env:
+        # Debug Mode, Dry Run and API dir not used
+        # This is for Docker usage, so output dir is set, so the volume can link to it
+        apiKey = os.environ["API_KEY"]
+        outputDir = "/tmp/showimages/"
     else:
-        apiDir = outputDir
+
+        parser = argparse.ArgumentParser(
+            description='Generate show images automagically.')
+        parser.add_argument('--apikey', required=True,
+                            help='API key with valid permissions for viewing all shows and setting show images.')
+        parser.add_argument('--debug', action='store_true',
+                            help='Print a lot of debug info.')
+        parser.add_argument('--dryrun', action='store_true',
+                            help="Don't actually update the API with the images generated.")
+        parser.add_argument('--outputdir', required=True,
+                            help='Location on the system to put the image files.')
+        parser.add_argument('--apidir', default=None,
+                            help='Location on the API host where the image files will be. This is useful if you are using mounts instead. Defaults to --outputdir')
+
+
+        args = parser.parse_args()
+
+        apiKey = apiKey = urllib.parse.quote(args.apikey)
+        debugMode = args.debug
+        dryRun = args.dryrun
+        outputDir = args.outputdir
+        if args.apidir != None:
+            apiDir = args.apidir
+        else:
+            apiDir = outputDir
 
     ################################
     ################################
@@ -253,3 +267,6 @@ if __name__ == "__main__":
                         deleteImage(showID)
 
     debug("Program complete")
+
+if __name__ == "__main__":
+    main(False)
