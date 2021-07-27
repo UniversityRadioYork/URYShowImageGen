@@ -27,6 +27,7 @@ See run.sh for an example of running as a cron job task.
 Docker will run the `daemon.py` file, calling the ShowImageGen once an hour.
 
 -   Build the image: `docker build -t show-image-gen .`
--   Run the container, mounting the ouput directory to `/tmp/showimages`, and adding your API key as the `API_KEY` environment variable, i.e.:
+- Set the `.env` file. As `DEBUG_MODE` and `DRY_RUN` are booleans, set `1` for true, `0` for false.
+-   Run the container, mounting the ouput directory to `/tmp/showimages`, and adding the `.env`, i.e.:
 
-    `docker run -v /mnt/showimages:/tmp/showimages -e API_KEY=your_api_key --name show-image-gen show-image-gen`
+    `docker run -v /mnt/showimages:/tmp/showimages --env-file .env -d --name show-image-gen show-image-gen`
