@@ -213,10 +213,18 @@ def main(env):
             False if to read from argparse
     """
 
+    # Why these ones are and the apiKey isn't annoys me - MG
+    global debugMode
+    global dryRun
+    global apiDir
+    global outputDir
+
     if env:
-        # Debug Mode, Dry Run and API dir not used
         # This is for Docker usage, so output dir is set, so the volume can link to it
         apiKey = os.environ["API_KEY"]
+        dryRun = os.environ["DRY_RUN"] == "1"
+        apiDir = os.environ["API_DIR"]
+        debugMode = os.environ["DEBUG_MODE"] == "1"
         outputDir = "/tmp/showimages/"
     else:
 
