@@ -10,7 +10,6 @@ import requests
 import os
 
 
-
 # Defines location of different image files to create show image.
 BACKGROUND_IMAGE_PATH = "GenericShowBackgrounds/"
 COLOURED_BARS_PATH = "ColouredBars/"
@@ -52,19 +51,23 @@ def getShows(apiKey):
         debug(showTitle)
     return shows
 
+
 def getIfDefaultImage(image):
     return image == DEFAULT_SHOW_IMAGE
+
 
 def setImage(apiKey, showId):
     image_location = apiDir + showId + '.jpg'
     debug("API file location: " + image_location, showId)
     if dryRun == False:
         debug("Calling API to set image.", showId)
-        r = requests.put('https://ury.org.uk/api/v2/show/' + str(showId) + '/showphoto?api_key=' + apiKey, json={'tmp_path': image_location})
+        r = requests.put('https://ury.org.uk/api/v2/show/' + str(showId) +
+                         '/showphoto?api_key=' + apiKey, json={'tmp_path': image_location})
         return r.status_code == 200
     else:
         debug("Dry run, not setting image with API.", showId)
         return True
+
 
 def deleteImage(showId):
     image_location = outputDir + showId + '.jpg'
@@ -72,7 +75,8 @@ def deleteImage(showId):
         os.remove(image_location)
         log("Error: MyRadio didn't move the file, failed.", showId, sys.stderr)
 
-def applyBrand(showName, outputName, branding):
+
+def applyBrand(showName, showID, branding):
     """Creates a show image for given show name, output file name and branding.
     Args:
         showName (str): Show name to add to image.
@@ -97,7 +101,7 @@ def applyBrand(showName, outputName, branding):
         brandingOverlay = "Flagship.png"
     elif branding == "collab":
         brandingOverlay = "Collab.png"
-    else: # Should be "regular"
+    else:  # Should be "regular"
         brandingOverlay = "BlueGeneral.png"
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
@@ -111,7 +115,7 @@ def applyBrand(showName, outputName, branding):
         text_size = 40
     else:
         text_size = 70
-    debug("Text Size:", text_size)
+    debug(f"Text Size: {text_size}")
     normalizedText = "\n".join(lines)
 
     # Determines which background image to use for the show image.
@@ -140,26 +144,30 @@ def applyBrand(showName, outputName, branding):
     textLineHeight = max(200, 350 - (h/2))
 
     # draw.text((x, y),"Sample Text",(r,g,b))
-    draw.text(((800 - w) / 2, textLineHeight), normalizedText, (255, 255, 255), textFont, align='center')
+    draw.text(((800 - w) / 2, textLineHeight), normalizedText,
+              (255, 255, 255), textFont, align='center')
 
     # website URY formatting
     debug("Applying website branding", showID)
     websiteURL = 'URY.ORG.UK \n @URY1350'
     websiteTextSize = 50
-    websiteFont = ImageFont.truetype("Raleway-SemiBoldItalic.ttf", websiteTextSize)
+    websiteFont = ImageFont.truetype(
+        "Raleway-SemiBoldItalic.ttf", websiteTextSize)
     draw = ImageDraw.Draw(img)
     w, h = draw.textsize(websiteURL, websiteFont)
     websiteURLHeight = 510
 
     # draw.text((x, y),"Sample Text",(r,g,b))
-    draw.text(((800 - w) / 2, websiteURLHeight), websiteURL, (255, 255, 255), websiteFont, align='center')
+    draw.text(((800 - w) / 2, websiteURLHeight), websiteURL,
+              (255, 255, 255), websiteFont, align='center')
 
     # Saves the image as the output name in a subfolder ShowImages
     debug("Saving the final image", showID)
-    img.convert('RGB').save('{}{}.jpg'.format(outputDir, outputName))
+    img.convert('RGB').save('{}{}.jpg'.format(outputDir, showID))
 
     # Todo check if we actually created the file successfully!
     return True
+
 
 def stripPrefix(showName):
     """Strips any prefix from the show name.
@@ -178,7 +186,7 @@ def stripPrefix(showName):
         "URY Music: ",
         "URY News & Sport: ",
         "URY Sport: "
-        ]
+    ]
     output = showName
     for prefix in prefixes:
         if showName.startswith(prefix):
@@ -197,9 +205,11 @@ def normalize(input_str, showID):
     """
     debug("normalize()")
 
-    lines = textwrap.wrap(input_str, width=17, break_long_words=False, break_on_hyphens=False)
+    lines = textwrap.wrap(input_str, width=17,
+                          break_long_words=False, break_on_hyphens=False)
     if len(lines) > 4 or len(max(lines, key=len)) > 17:
-        lines = textwrap.wrap(input_str, width=20, break_long_words=False, break_on_hyphens=False)
+        lines = textwrap.wrap(input_str, width=20,
+                              break_long_words=False, break_on_hyphens=False)
     if len(max(lines, key=len)) > 20:
         error("Word too long for image", showID)
     return lines
@@ -241,7 +251,6 @@ def main(env):
         parser.add_argument('--apidir', default=None,
                             help='Location on the API host where the image files will be. This is useful if you are using mounts instead. Defaults to --outputdir')
 
-
         args = parser.parse_args()
 
         apiKey = apiKey = urllib.parse.quote(args.apikey)
@@ -263,18 +272,19 @@ def main(env):
 
     for showKey in ApiShowsDict:
 
-            show = ApiShowsDict[showKey]
-            if getIfDefaultImage(show[1]):
-                # The show uses the default image, let's make it one.
-                showName = show[0]
-                showID = str(showKey)
-                branding = show[2]
-                if applyBrand(showName, showID, branding):
-                    if setImage(apiKey, showID):
-                        debug("Image set succeessfully, deleting.", showID)
-                        deleteImage(showID)
+        show = ApiShowsDict[showKey]
+        if getIfDefaultImage(show[1]):
+            # The show uses the default image, let's make it one.
+            showName = show[0]
+            showID = str(showKey)
+            branding = show[2]
+            if applyBrand(showName, showID, branding):
+                if setImage(apiKey, showID):
+                    debug("Image set succeessfully, deleting.", showID)
+                    deleteImage(showID)
 
     debug("Program complete")
+
 
 if __name__ == "__main__":
     main(False)
