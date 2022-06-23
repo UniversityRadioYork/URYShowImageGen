@@ -102,7 +102,7 @@ def applyBrand(showName, outputName, branding):
     debug("Branding {}".format(branding if branding != "" else "generic"), showID)
 
     # maxNumberOfLines = 4
-    lines = normalize(showName)
+    lines = normalize(showName, showID)
     debug("Lines: " + str(lines))
     debug("Line count: " + str(len(lines)))
     if len(lines) > 5:
@@ -188,7 +188,7 @@ def stripPrefix(showName):
     return output
 
 
-def normalize(input_str):
+def normalize(input_str, showID):
     """Splits the show name into separate lines of maximum lengths.
     Args:
         input (str): The Show name.
