@@ -28,6 +28,6 @@ Docker will run the `daemon.py` file, calling the ShowImageGen once an hour.
 
 -   Build the image: `docker build -t show-image-gen .`
 - Set the `.env` file. As `DEBUG_MODE` and `DRY_RUN` are booleans, set `1` for true, `0` for false.
--   Run the container, mounting the ouput directory to `/tmp/showimages`, and adding the `.env`, i.e.:
+-   Run the container, mounting the ouput directory to `/tmp/showimages` (not needed with direct myradio uploads), and adding the `.env`, i.e.:
 
     `docker run -v /mnt/showimages:/tmp/showimages --env-file .env -d --name show-image-gen show-image-gen`

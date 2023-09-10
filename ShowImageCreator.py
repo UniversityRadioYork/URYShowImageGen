@@ -57,6 +57,7 @@ def getIfDefaultImage(image):
 
 
 def setImage(apiKey, showId):
+    # deprecated
     image_location = apiDir + showId + '.jpg'
     debug("API file location: " + image_location, showId)
     if dryRun == False:
@@ -68,6 +69,8 @@ def setImage(apiKey, showId):
         debug("Dry run, not setting image with API.", showId)
         return True
 
+def upload_to_myradio(showID):
+    return os.system(f"myradio-uploader/myradio-uploader {myr_user} {myr_pass} {showID} {outputDir + showID + '.jpg'}") == 0
 
 def deleteImage(showId):
     image_location = outputDir + showId + '.jpg'
@@ -228,6 +231,8 @@ def main(env):
     global dryRun
     global apiDir
     global outputDir
+    global myr_user
+    global myr_pass 
 
     if env:
         # This is for Docker usage, so output dir is set, so the volume can link to it
@@ -236,6 +241,8 @@ def main(env):
         apiDir = os.environ["API_DIR"]
         debugMode = os.environ["DEBUG_MODE"] == "1"
         outputDir = "/tmp/showimages/"
+        myr_user = os.environ["MYR_USER"]
+        myr_pass = os.environ["MYR_PASS"]
     else:
 
         parser = argparse.ArgumentParser(
@@ -279,7 +286,11 @@ def main(env):
             showID = str(showKey)
             branding = show[2]
             if applyBrand(showName, showID, branding):
-                if setImage(apiKey, showID):
+                if not env:
+                    if setImage(apiKey, showID):
+                        debug("Image set succeessfully, deleting.", showID)
+                        deleteImage(showID)
+                if upload_to_myradio(showID):
                     debug("Image set succeessfully, deleting.", showID)
                     deleteImage(showID)
 
