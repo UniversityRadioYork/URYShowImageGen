@@ -15,6 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-COPY --from=gobuild /usr/src/app/myradio-uploader/myradio-uploader /myradio-uploader/myradio-uploader
+COPY --from=gobuild /usr/src/app/myradio-uploader/myradio-uploader myradio-uploader/myradio-uploader
 
 CMD ["python", "daemon.py"]
