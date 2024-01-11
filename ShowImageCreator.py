@@ -76,7 +76,6 @@ def deleteImage(showId):
     image_location = outputDir + showId + '.jpg'
     if (os.path.exists(image_location)):
         os.remove(image_location)
-        log("Error: MyRadio didn't move the file, failed.", showId, sys.stderr)
 
 
 def applyBrand(showName, showID, branding):
@@ -237,9 +236,9 @@ def main(env):
     if env:
         # This is for Docker usage, so output dir is set, so the volume can link to it
         apiKey = os.environ["API_KEY"]
-        dryRun = os.environ["DRY_RUN"] == "1"
+        dryRun = str(os.environ["DRY_RUN"]) == "1"
         apiDir = os.environ["API_DIR"]
-        debugMode = os.environ["DEBUG_MODE"] == "1"
+        debugMode = str(os.environ["DEBUG_MODE"]) == "1"
         outputDir = "/tmp/showimages/"
         myr_user = os.environ["MYR_USER"]
         myr_pass = os.environ["MYR_PASS"]
