@@ -151,7 +151,7 @@ def applyBrand(showName, showID, branding):
 
     # website URY formatting
     debug("Applying website branding", showID)
-    websiteURL = 'URY.ORG.UK \n @URY1350'
+    websiteURL = 'URY.ORG.UK \n @uniradioyork'
     websiteTextSize = 50
     websiteFont = ImageFont.truetype(
         "Raleway-SemiBoldItalic.ttf", websiteTextSize)
